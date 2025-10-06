@@ -1,12 +1,9 @@
-// Signup.jsx
+// src/pages/signup/Signup.jsx
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Navbar from "../../components/Navbar";
 import { auth, db, storage, setupRecaptcha } from "../../firebaseconfig";
-import {
-  createUserWithEmailAndPassword,
-  signInWithPhoneNumber,
-} from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithPhoneNumber } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
@@ -31,10 +28,9 @@ export default function Signup() {
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState("");
 
+  // Setup recaptcha safely
   useEffect(() => {
-    if (!window.recaptchaVerifier) {
-      setupRecaptcha("recaptcha-container");
-    }
+    if (auth) setupRecaptcha("recaptcha-container");
   }, []);
 
   const handleChange = (e) => {
@@ -47,24 +43,21 @@ export default function Signup() {
     if (!file) return null;
     const validTypes = ["image/jpeg", "image/jpg", "image/png"];
     if (!validTypes.includes(file.type)) return "Only JPEG/PNG allowed";
-    if (file.size > maxSizeMB * 1024 * 1024)
-      return `File too large, max ${maxSizeMB}MB`;
+    if (file.size > maxSizeMB * 1024 * 1024) return `File too large, max ${maxSizeMB}MB`;
     return null;
   };
 
   const validate = () => {
     const newErrors = {};
-    if (!formData.name.trim()) newErrors.name = "Name is required";
-    if (!formData.emailOrPhone.trim())
-      newErrors.emailOrPhone = "Email or Phone is required";
+    if (!formData.name.trim()) newErrors.name = "Name required";
+    if (!formData.emailOrPhone.trim()) newErrors.emailOrPhone = "Email or Phone required";
     if (!formData.emailOrPhone.startsWith("+") && !formData.password.trim())
-      newErrors.password = "Password is required";
+      newErrors.password = "Password required";
 
     if (formData.role === "Farmer" && formData.landDocument) {
       const err = validateFile(formData.landDocument);
       if (err) newErrors.landDocument = err;
     }
-
     if (formData.role === "Seller") {
       if (!formData.shopLicense) newErrors.shopLicense = "Shop license required";
       else {
@@ -77,10 +70,8 @@ export default function Signup() {
         if (err) newErrors.companyDocs = err;
       }
     }
-
-    if (formData.role === "Field Officer" && !formData.employeeId.trim()) {
+    if (formData.role === "Field Officer" && !formData.employeeId.trim())
       newErrors.employeeId = "Employee ID required";
-    }
 
     if (formData.role === "Company") {
       if (!formData.website.trim()) newErrors.website = "Website required";
@@ -100,7 +91,7 @@ export default function Signup() {
       await uploadBytes(storageRef, file);
       return await getDownloadURL(storageRef);
     } catch (err) {
-      console.error(`Error uploading ${file.name}:`, err);
+      console.error("Upload error:", err);
       alert(`Failed to upload ${file.name}`);
       return null;
     }
@@ -118,7 +109,7 @@ export default function Signup() {
       setOtpSent(true);
       alert("OTP sent! Check your phone.");
     } catch (err) {
-      console.error("Error sending OTP:", err);
+      console.error("OTP error:", err);
       alert(err.message || "Failed to send OTP");
     }
   };
@@ -126,8 +117,7 @@ export default function Signup() {
   const verifyOtpAndSignup = async () => {
     try {
       const result = await window.confirmationResult.confirm(otp);
-      const user = result.user;
-      await createFirestoreProfile(user.uid);
+      await createFirestoreProfile(result.user.uid);
       navigateBasedOnRole();
     } catch (err) {
       console.error("OTP verification failed:", err);
@@ -159,18 +149,14 @@ export default function Signup() {
   };
 
   const navigateBasedOnRole = () => {
-    const requiresApproval = ["Farmer", "Seller", "Field Officer", "Company"];
-    if (requiresApproval.includes(formData.role)) {
-      navigate("/pending-approval");
-    } else {
-      navigate(`/${formData.role.toLowerCase()}/dashboard`);
-    }
+    const needsApproval = ["Farmer", "Seller", "Field Officer", "Company"];
+    if (needsApproval.includes(formData.role)) navigate("/pending-approval");
+    else navigate(`/${formData.role.toLowerCase()}/dashboard`);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
-
     setLoading(true);
     try {
       if (formData.emailOrPhone.startsWith("+")) {
@@ -196,7 +182,6 @@ export default function Signup() {
   return (
     <div className="min-h-screen flex flex-col bg-[#FAFAF7]">
       <Navbar />
-      {/* Only one container for reCAPTCHA */}
       <div id="recaptcha-container"></div>
 
       <div className="flex-1 flex items-center justify-center px-4 py-20">
@@ -217,11 +202,11 @@ export default function Signup() {
           />
           {errors.name && <p className="text-red-500 text-sm">{errors.name}</p>}
 
-          {/* Email or Phone */}
+          {/* Email / Phone */}
           <input
             type="text"
             name="emailOrPhone"
-            placeholder="Email or Phone (for phone use +91...)"
+            placeholder="Email or Phone (+91...)"
             value={formData.emailOrPhone}
             onChange={handleChange}
             className="w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-green-300"
@@ -269,7 +254,7 @@ export default function Signup() {
             <option value="Field Officer">Field Officer</option>
           </select>
 
-          {/* Role-specific fields */}
+          {/* Role-based fields */}
           {formData.role === "Farmer" && (
             <div>
               <label className="text-sm font-medium">
@@ -283,12 +268,12 @@ export default function Signup() {
           {formData.role === "Seller" && (
             <>
               <div>
-                <label className="text-sm font-medium">Shop License (JPEG/PNG, max 5MB)</label>
+                <label className="text-sm font-medium">Shop License</label>
                 <input type="file" name="shopLicense" onChange={handleChange} className="mt-1"/>
                 {errors.shopLicense && <p className="text-red-500 text-sm">{errors.shopLicense}</p>}
               </div>
               <div>
-                <label className="text-sm font-medium">Company Documents (JPEG/PNG, max 5MB)</label>
+                <label className="text-sm font-medium">Company Documents</label>
                 <input type="file" name="companyDocs" onChange={handleChange} className="mt-1"/>
                 {errors.companyDocs && <p className="text-red-500 text-sm">{errors.companyDocs}</p>}
               </div>
@@ -358,7 +343,7 @@ export default function Signup() {
             className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors"
           >
             {loading
-              ? "Processing..."
+              ? "Signing up..."
               : otpSent && formData.emailOrPhone.startsWith("+")
               ? "Verify OTP"
               : "Sign Up"}
