@@ -1,9 +1,10 @@
-// firebaseconfig.js
+// src/firebaseconfig.js
 import { initializeApp } from "firebase/app";
 import { getAuth, RecaptchaVerifier } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
+// Firebase config from Netlify env vars
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
   authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
@@ -13,26 +14,23 @@ const firebaseConfig = {
   appId: process.env.REACT_APP_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
+// Initialize Firebase app
 const app = initializeApp(firebaseConfig);
 
-// Auth
-export const auth = getAuth(app);
+// Firebase services
+const auth = getAuth(app);
+const db = getFirestore(app);
+const storage = getStorage(app);
 
-// Firestore
-export const db = getFirestore(app);
-
-// Storage
-export const storage = getStorage(app);
-
-// RecaptchaVerifier helper for production (for phone auth)
-export const setupRecaptcha = (elementId = "sign-in-button") => {
+// ReCAPTCHA setup
+const setupRecaptcha = (containerId) => {
   if (!window.recaptchaVerifier) {
     window.recaptchaVerifier = new RecaptchaVerifier(
-      elementId,
-      { size: "invisible" },
+      containerId,
+      { size: "invisible", callback: () => console.log("reCAPTCHA verified") },
       auth
     );
-    window.recaptchaVerifier.render();
   }
 };
+
+export { auth, db, storage, setupRecaptcha };
