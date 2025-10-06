@@ -1,5 +1,5 @@
 // Signup.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Navbar from "../../components/Navbar";
 import { auth, db, storage, setupRecaptcha } from "../../firebaseconfig";
@@ -31,6 +31,13 @@ export default function Signup() {
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState("");
 
+  // Initialize reCAPTCHA once
+  useEffect(() => {
+    if (!window.recaptchaVerifier) {
+      setupRecaptcha("sign-in-button");
+    }
+  }, []);
+
   const handleChange = (e) => {
     const { name, value, files } = e.target;
     if (files) setFormData({ ...formData, [name]: files[0] });
@@ -51,10 +58,7 @@ export default function Signup() {
     if (!formData.name.trim()) newErrors.name = "Name is required";
     if (!formData.emailOrPhone.trim())
       newErrors.emailOrPhone = "Email or Phone is required";
-    if (
-      !formData.password.trim() &&
-      !formData.emailOrPhone.match(/^\+\d{10,14}$/)
-    )
+    if (!formData.emailOrPhone.startsWith("+") && !formData.password.trim())
       newErrors.password = "Password is required";
 
     if (formData.role === "Farmer" && formData.landDocument) {
@@ -98,13 +102,14 @@ export default function Signup() {
       return await getDownloadURL(storageRef);
     } catch (err) {
       console.error(`Error uploading ${file.name}:`, err);
+      alert(`Failed to upload ${file.name}`);
       return null;
     }
   };
 
   const sendOtp = async () => {
-    setupRecaptcha();
     try {
+      if (!window.recaptchaVerifier) setupRecaptcha("sign-in-button");
       const confirmationResult = await signInWithPhoneNumber(
         auth,
         formData.emailOrPhone,
@@ -115,7 +120,7 @@ export default function Signup() {
       alert("OTP sent! Check your phone.");
     } catch (err) {
       console.error("Error sending OTP:", err);
-      alert(err.message);
+      alert(err.message || "Failed to send OTP");
     }
   };
 
@@ -127,7 +132,7 @@ export default function Signup() {
       navigateBasedOnRole();
     } catch (err) {
       console.error("OTP verification failed:", err);
-      alert(err.message);
+      alert(err.message || "Invalid OTP");
     }
   };
 
@@ -183,7 +188,7 @@ export default function Signup() {
       }
     } catch (err) {
       console.error("Signup error:", err);
-      alert(err.message);
+      alert(err.message || "Signup failed");
     } finally {
       setLoading(false);
     }
@@ -192,6 +197,8 @@ export default function Signup() {
   return (
     <div className="min-h-screen flex flex-col bg-[#FAFAF7]">
       <Navbar />
+      <div id="sign-in-button"></div>
+
       <div className="flex-1 flex items-center justify-center px-4 py-20">
         <form
           className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md space-y-4"
@@ -352,7 +359,7 @@ export default function Signup() {
             className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors"
           >
             {loading
-              ? "Signing up..."
+              ? "Processing..."
               : otpSent && formData.emailOrPhone.startsWith("+")
               ? "Verify OTP"
               : "Sign Up"}
