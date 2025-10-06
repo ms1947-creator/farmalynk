@@ -3,10 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Navbar from "../../components/Navbar";
 import { auth, db, storage, setupRecaptcha } from "../../firebaseconfig";
-import {
-  createUserWithEmailAndPassword,
-  signInWithPhoneNumber,
-} from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithPhoneNumber } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
@@ -31,10 +28,9 @@ export default function Signup() {
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState("");
 
+  // Initialize reCAPTCHA only once
   useEffect(() => {
-    if (!window.recaptchaVerifier) {
-      setupRecaptcha("recaptcha-container");
-    }
+    if (!window.recaptchaVerifier) setupRecaptcha("recaptcha-container");
   }, []);
 
   const handleChange = (e) => {
@@ -221,7 +217,7 @@ export default function Signup() {
           <input
             type="text"
             name="emailOrPhone"
-            placeholder="Email or Phone (for phone use +91...)"
+            placeholder="Email or Phone (+91...)"
             value={formData.emailOrPhone}
             onChange={handleChange}
             className="w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-green-300"
