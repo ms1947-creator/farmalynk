@@ -31,10 +31,9 @@ export default function Signup() {
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState("");
 
-  // Initialize reCAPTCHA once
   useEffect(() => {
     if (!window.recaptchaVerifier) {
-      setupRecaptcha("sign-in-button");
+      setupRecaptcha("recaptcha-container");
     }
   }, []);
 
@@ -109,7 +108,7 @@ export default function Signup() {
 
   const sendOtp = async () => {
     try {
-      if (!window.recaptchaVerifier) setupRecaptcha("sign-in-button");
+      if (!window.recaptchaVerifier) setupRecaptcha("recaptcha-container");
       const confirmationResult = await signInWithPhoneNumber(
         auth,
         formData.emailOrPhone,
@@ -197,7 +196,8 @@ export default function Signup() {
   return (
     <div className="min-h-screen flex flex-col bg-[#FAFAF7]">
       <Navbar />
-      <div id="sign-in-button"></div>
+      {/* Only one container for reCAPTCHA */}
+      <div id="recaptcha-container"></div>
 
       <div className="flex-1 flex items-center justify-center px-4 py-20">
         <form
@@ -353,7 +353,6 @@ export default function Signup() {
           )}
 
           <button
-            id="sign-in-button"
             type="submit"
             disabled={loading}
             className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors"
