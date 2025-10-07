@@ -1,132 +1,151 @@
 // src/pages/Login/Login.jsx
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth } from "../../firebaseconfig"; // Make sure this exports Firebase 12 auth
 import {
+  getAuth,
   signInWithEmailAndPassword,
   RecaptchaVerifier,
   signInWithPhoneNumber,
-  onAuthStateChanged,
 } from "firebase/auth";
+import { auth } from "../../firebaseconfig";
 
-export default function Login() {
+const Login = () => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ emailOrPhone: "", password: "" });
+
+  const [method, setMethod] = useState("email"); // "email" | "phone"
+
+  // Email/password states
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  // Phone/OTP states
+  const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [confirmationResult, setConfirmationResult] = useState(null);
 
-  // Redirect logged-in users
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) navigate("/dashboard");
-    });
-    return () => unsubscribe();
-  }, [navigate]);
-
+  // Setup visible reCAPTCHA for phone login
   const setupRecaptcha = () => {
     if (!window.recaptchaVerifier) {
       window.recaptchaVerifier = new RecaptchaVerifier(
-        "sign-in-button",
-        { size: "invisible" },
+        "recaptcha-container",
+        {
+          size: "normal", // visible widget
+          callback: () => console.log("reCAPTCHA solved"),
+          "expired-callback": () => alert("reCAPTCHA expired, retry"),
+        },
         auth
       );
-      window.recaptchaVerifier.render();
     }
   };
 
-  const sendOtp = async () => {
-    setError("");
-    setupRecaptcha();
-    try {
-      const confirmationResult = await signInWithPhoneNumber(
-        auth,
-        formData.emailOrPhone,
-        window.recaptchaVerifier
-      );
-      window.confirmationResult = confirmationResult;
-      setOtpSent(true);
-      alert("OTP sent!");
-    } catch (err) {
-      setError(err.message);
-    }
-  };
+  useEffect(() => {
+    if (method === "phone") setupRecaptcha();
+  }, [method]);
 
-  const verifyOtp = async () => {
-    try {
-      await window.confirmationResult.confirm(otp);
-      navigate("/dashboard");
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
-  const handleSubmit = async (e) => {
+  // Email login
+  const handleEmailLogin = async (e) => {
     e.preventDefault();
-    setError("");
-    setLoading(true);
-
     try {
-      if (formData.emailOrPhone.startsWith("+")) {
-        if (!otpSent) await sendOtp();
-        else await verifyOtp();
-      } else {
-        await signInWithEmailAndPassword(auth, formData.emailOrPhone, formData.password);
-        navigate("/dashboard");
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+      await signInWithEmailAndPassword(auth, email, password);
+      alert("Login successful!");
+      navigate("/dashboard"); // redirect to dashboard or home page
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+
+  // Send OTP for phone login
+  const sendOtp = async () => {
+    if (!phone) return alert("Enter phone number first");
+    try {
+      const appVerifier = window.recaptchaVerifier;
+      const confirmation = await signInWithPhoneNumber(auth, phone, appVerifier);
+      setConfirmationResult(confirmation);
+      alert("OTP sent to your phone!");
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+
+  // Verify OTP
+  const verifyOtp = async () => {
+    if (!otp || !confirmationResult) return alert("Enter OTP first");
+    try {
+      await confirmationResult.confirm(otp);
+      alert("Login successful!");
+      navigate("/dashboard"); // redirect to dashboard or home page
+    } catch (error) {
+      alert("Invalid OTP. Try again.");
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <form onSubmit={handleSubmit} className="bg-white p-8 rounded shadow-md w-80 space-y-4">
-        <h2 className="text-xl font-bold text-center">Login</h2>
+    <div className="login-container">
+      <h2>Login</h2>
 
-        <input
-          type="text"
-          name="emailOrPhone"
-          placeholder="Email or Phone (+91...)"
-          value={formData.emailOrPhone}
-          onChange={(e) => setFormData({ ...formData, emailOrPhone: e.target.value })}
-          className="w-full border px-3 py-2 rounded"
-        />
+      {/* Method toggle */}
+      <div>
+        <button
+          onClick={() => setMethod("email")}
+          style={{ fontWeight: method === "email" ? "bold" : "normal" }}
+        >
+          Email
+        </button>
+        <button
+          onClick={() => setMethod("phone")}
+          style={{ fontWeight: method === "phone" ? "bold" : "normal" }}
+        >
+          Phone
+        </button>
+      </div>
 
-        {!formData.emailOrPhone.startsWith("+") && (
+      {method === "email" && (
+        <form onSubmit={handleEmailLogin} style={{ marginTop: "20px" }}>
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
           <input
             type="password"
             placeholder="Password"
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            className="w-full border px-3 py-2 rounded"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
           />
-        )}
+          <button type="submit">Login with Email</button>
+        </form>
+      )}
 
-        {otpSent && formData.emailOrPhone.startsWith("+") && (
+      {method === "phone" && (
+        <div style={{ marginTop: "20px" }}>
           <input
-            type="text"
-            placeholder="Enter OTP"
-            value={otp}
-            onChange={(e) => setOtp(e.target.value)}
-            className="w-full border px-3 py-2 rounded"
+            type="tel"
+            placeholder="+911234567890"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
           />
-        )}
+          <button onClick={sendOtp}>Send OTP</button>
 
-        {error && <p className="text-red-500 text-sm">{error}</p>}
+          <div id="recaptcha-container" style={{ marginTop: "10px" }}></div>
 
-        <button
-          id="sign-in-button"
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-600 text-white py-2 rounded"
-        >
-          {loading ? "Logging in..." : otpSent ? "Verify OTP" : "Login"}
-        </button>
-      </form>
+          {confirmationResult && (
+            <div style={{ marginTop: "10px" }}>
+              <input
+                type="text"
+                placeholder="Enter OTP"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+              />
+              <button onClick={verifyOtp}>Verify OTP</button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
-}
+};
+
+export default Login;

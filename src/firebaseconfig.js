@@ -1,34 +1,86 @@
-// src/firebaseconfig.js
-import { initializeApp } from "firebase/app";
-import { getAuth, RecaptchaVerifier } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
+import React, { useState } from "react";
+import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
+import { auth } from "../../firebaseconfig"; // ✅ Use your shared instance
 
-// Firebase config from Netlify environment variables
-const firebaseConfig = {
-  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.REACT_APP_FIREBASE_APP_ID,
+const Login = () => {
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [otp, setOtp] = useState("");
+  const [confirmationResult, setConfirmationResult] = useState(null);
+
+  // ✅ Setup reCAPTCHA
+  const setupRecaptcha = () => {
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(
+        auth,
+        "recaptcha-container",
+        {
+          size: "invisible",
+          callback: () => {
+            console.log("reCAPTCHA verified");
+          },
+        }
+      );
+    }
+  };
+
+  // ✅ Send OTP
+  const sendOtp = async () => {
+    if (!phoneNumber) return alert("Enter phone number");
+
+    setupRecaptcha();
+    const appVerifier = window.recaptchaVerifier;
+
+    try {
+      const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+      setConfirmationResult(result);
+      alert("OTP sent successfully!");
+    } catch (error) {
+      console.error("OTP Send Error:", error);
+      alert(error.message);
+    }
+  };
+
+  // ✅ Verify OTP
+  const verifyOtp = async () => {
+    if (!otp || !confirmationResult) return alert("Enter the OTP");
+    try {
+      const result = await confirmationResult.confirm(otp);
+      alert("Login successful!");
+      console.log("User:", result.user);
+    } catch (error) {
+      console.error("Verification Error:", error);
+      alert("Invalid OTP");
+    }
+  };
+
+  return (
+    <div className="login-container">
+      <h2>Phone Login</h2>
+
+      <input
+        type="tel"
+        placeholder="+91XXXXXXXXXX"
+        value={phoneNumber}
+        onChange={(e) => setPhoneNumber(e.target.value)}
+      />
+      <button onClick={sendOtp}>Send OTP</button>
+
+      {confirmationResult && (
+        <>
+          <input
+            type="text"
+            placeholder="Enter OTP"
+            value={otp}
+            onChange={(e) => setOtp(e.target.value)}
+          />
+          <button onClick={verifyOtp}>Verify OTP</button>
+        </>
+      )}
+
+      {/* 👇 Required for reCAPTCHA */}
+      <div id="recaptcha-container"></div>
+    </div>
+  );
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);   // Ensure auth is initialized first
-const db = getFirestore(app);
-const storage = getStorage(app);
-
-// Setup invisible reCAPTCHA safely
-const setupRecaptcha = (containerId) => {
-  if (typeof window !== "undefined" && auth && !window.recaptchaVerifier) {
-    window.recaptchaVerifier = new RecaptchaVerifier(
-      containerId,
-      { size: "invisible", callback: () => console.log("reCAPTCHA verified") },
-      auth
-    );
-  }
-};
-
-export { auth, db, storage, setupRecaptcha };
+export default Login;
