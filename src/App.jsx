@@ -1,5 +1,8 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 
 // Pages
 import Home from "./pages/Home/Home";
@@ -123,6 +126,7 @@ function App() {
           }
         />
       </Routes>
+      <ToastContainer position="top-center" autoClose={3000} />
     </Router>
   );
 }

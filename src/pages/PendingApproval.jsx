@@ -1,6 +1,6 @@
 import React from "react";
 import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
+
 
 export default function PendingApproval() {
   return (
@@ -31,7 +31,7 @@ export default function PendingApproval() {
         </div>
       </div>
 
-      <Footer />
+
     </div>
   );
 }

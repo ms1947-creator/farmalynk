@@ -11,11 +11,9 @@ const ProtectedAdminRoute = ({ children }) => {
   React.useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // Check Firestore role
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        const role = userDoc.exists() ? userDoc.data().role : null;
-
-        if (role === "admin") {
+        // 🔹 Check admins collection instead of users
+        const adminDoc = await getDoc(doc(db, "admins", user.uid));
+        if (adminDoc.exists()) {
           setIsAdmin(true);
         } else {
           setIsAdmin(false);
@@ -25,13 +23,10 @@ const ProtectedAdminRoute = ({ children }) => {
       }
       setLoading(false);
     });
-
     return () => unsubscribe();
   }, []);
 
   if (loading) return <div>Loading...</div>;
-
-  // If not logged in or not admin, redirect to admin login
   if (!isAdmin) return <Navigate to="/farmalynk-one-admin-login" replace />;
 
   return children;
