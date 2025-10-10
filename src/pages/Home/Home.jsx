@@ -286,29 +286,35 @@ export default function Home() {
       ) : !products.length ? (
         <p className="text-center">No products available.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {products.map((product) => {
-            const imgUrl = product.imageUrl || product.image || "/placeholder.png"; // fallback image
-            return (
-              <div key={product.id} className="border p-4 rounded-lg shadow hover:shadow-lg transition flex flex-col">
-                <img
-                  src={imgUrl}
-                  alt={product.name || "Product"}
-                  className="w-full h-48 object-cover mb-4 rounded"
-                />
-                <h3 className="text-xl font-semibold mb-2">{product.name || "Unnamed Product"}</h3>
-                <p className="text-gray-700 mb-2">{product.description || ""}</p>
-                <p className="font-bold mb-4">₹{product.price} / {product.unit}</p>
-                <button
-                  onClick={() => navigate("/login")}
-                  className="w-full mt-auto bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition"
-                >
-                  Add to Cart
-                </button>
-              </div>
-            );
-          })}
+        <div className="max-h-[80vh] overflow-y-auto">
+  <div className="grid grid-cols-3 md:grid-cols-6 gap-4 place-items-center">
+    {products.map((product) => {
+      const imgUrl = product.imageUrl || product.image || "/placeholder.png";
+      return (
+        <div
+          key={product.id}
+          className="border p-3 rounded-lg shadow hover:shadow-lg transition flex flex-col items-center w-[100px] md:w-[160px]"
+        >
+          <img
+            src={imgUrl}
+            alt={product.name || "Product"}
+            className="w-full h-24 md:h-32 object-cover mb-3 rounded"
+          />
+          <h3 className="text-sm md:text-base font-semibold text-center">{product.name || "Unnamed"}</h3>
+          <p className="text-gray-600 text-xs md:text-sm text-center line-clamp-2">{product.description || ""}</p>
+          <p className="font-bold text-green-700 text-sm md:text-base mt-1">₹{product.price} / {product.unit}</p>
+          <button
+            onClick={() => navigate("/login")}
+            className="w-full mt-2 bg-green-600 text-white text-xs md:text-sm py-1 rounded hover:bg-green-700 transition"
+          >
+            Add to Cart
+          </button>
         </div>
+      );
+    })}
+  </div>
+</div>
+
       )}
     </div>
   </div>
