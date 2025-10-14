@@ -41,26 +41,34 @@ const Login = () => {
     }
   };
 
-  const handleEmailLogin = async (e) => {
-    e.preventDefault();
-    const { email, password } = formData;
-    if (!email || !password) {
-      toast.error("Please enter email and password");
-      return;
-    }
+const handleEmailLogin = async (e) => {
+    e.preventDefault();
+    const { email, password } = formData;
+    if (!email || !password) {
+      toast.error("Please enter email and password");
+      return;
+    }
 
-    setLoading(true);
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      toast.success("Login successful!");
-      await redirectBasedOnRole(userCredential.user.uid);
-    } catch (err) {
-      console.error(err);
-      toast.error(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    setLoading(true);
+    try {
+      // FIX: Trim the inputs before sending to Firebase
+      const emailTrimmed = email.trim();
+      const passwordTrimmed = password.trim(); 
+
+      const userCredential = await signInWithEmailAndPassword(auth, emailTrimmed, passwordTrimmed);
+      toast.success("Login successful!");
+      await redirectBasedOnRole(userCredential.user.uid);
+    } catch (err) {
+      console.error(err);
+      // IMPROVEMENT: Give a more user-friendly error
+      const errorMessage = err.code === 'auth/invalid-credential' 
+        ? "Invalid email or password." 
+        : err.message;
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleGoogleLogin = async () => {
     setLoading(true);
